@@ -39,6 +39,14 @@ def list_recent_messages(service, days: int = 3) -> List[str]:
     return [m["id"] for m in msgs]
 
 
+def search_messages(service, query: str) -> List[str]:
+    """Return message IDs for a Gmail search query."""
+    results = (
+        service.users().messages().list(userId="me", q=query, maxResults=100).execute()
+    )
+    return [m["id"] for m in results.get("messages", [])]
+
+
 def iter_parts(part: Dict) -> Generator[Dict, None, None]:
     """Yield all parts in the payload tree."""
     if not part:
@@ -99,7 +107,9 @@ def download_attachments(service, msg_id: str, dest_dir: Path) -> None:
 def main():
     try:
         service = get_service()
-        message_ids = list_recent_messages(service, days=3)
+        a_month_ago = int(time.time()) - 30 * 24 * 60 * 60
+        query = f"subject:信用卡 subject:帳單 has:attachment after:{a_month_ago}"
+        message_ids = search_messages(service, query)
         dest = Path("attachments")
         for msg_id in message_ids:
             download_attachments(service, msg_id, dest)
