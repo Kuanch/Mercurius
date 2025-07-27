@@ -27,3 +27,13 @@ Run the script:
 ```
 python main.py
 ```
+
+The script searches for credit card bill emails from the last month and
+downloads their attachments automatically.
+
+### S/MIME Messages
+
+If an email is S/MIME protected and the attachment cannot be accessed
+directly, the script will save the full raw message under
+`attachments/smime_raw/`. You can then decrypt or verify the message
+with your own S/MIME tools and keys.
