@@ -17,9 +17,13 @@ To use this project, you need to enable the Gmail API and set up credentials:
 For more details, see the [Gmail API Python Quickstart](https://developers.google.com/gmail/api/quickstart/python).
 
 ## Dependency
-Install the dependency with:
+Install the Gmail API dependency with:
 ```
 pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
+```
+and pypdf
+```
+pip install pypdf cryptography>=3.1
 ```
 
 ## Usage
@@ -28,12 +32,4 @@ Run the script:
 python main.py
 ```
 
-The script searches for credit card bill emails from the last month and
-downloads their attachments automatically.
-
-### S/MIME Messages
-
-If an email is S/MIME protected and the attachment cannot be accessed
-directly, the script will save the full raw message under
-`attachments/smime_raw/`. You can then decrypt or verify the message
-with your own S/MIME tools and keys.
+The script searches for credit card bill emails from the last month and downloads their attachments, parses the content of the bills, and finally feed into OpenAI API, you can interact it with the input box later showing up.
