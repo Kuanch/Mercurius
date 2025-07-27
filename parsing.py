@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from pypdf import PdfReader, PdfWriter
 
 
@@ -45,9 +46,61 @@ def uncrypt_pdf():
             else:
                 print(f"Failed to decrypt {filename}.")
 
+def _parse_single_pdf(pdf_path: str) -> dict:
+    """Extract transaction data from a single PDF file."""
+    reader = PdfReader(pdf_path)
+    text = []
+    for page in reader.pages:
+        t = page.extract_text()
+        if t:
+            text.append(t)
+    content = "\n".join(text)
+
+    line_re = re.compile(
+        r"(?P<consume>\d{2}/\d{2})\s+"  # consume date
+        r"(?P<post>\d{2}/\d{2})\s+"      # post date
+        r"(?:(?P<card>\d{4})\s+)?"        # optional card last4
+        r"(?P<desc>.+?)\s+"               # description
+        r"(?P<amount>-?\d[\d,]*)$"       # amount
+    )
+    total_re = re.compile(r"本期應繳金額合計\s+([\d,]+)")
+
+    transactions = []
+    total = None
+    for line in content.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        m = line_re.search(line)
+        if m:
+            data = m.groupdict()
+            transactions.append(data)
+            continue
+        m_total = total_re.search(line)
+        if m_total:
+            total = m_total.group(1)
+
+    return {"transactions": transactions, "total_due": total}
+
+
 def parsing():
-    """Main function to parse and decrypt PDFs."""
-    raise NotImplementedError("This function is not yet implemented.")
+    """Parse all decrypted PDFs under the 'unlocked' directory."""
+    results = {}
+    if not os.path.isdir("unlocked"):
+        print("No decrypted PDFs found. Run uncrypt_pdf() first.")
+        return results
+
+    for filename in os.listdir("unlocked"):
+        if not filename.endswith(".pdf"):
+            continue
+        path = os.path.join("unlocked", filename)
+        print(f"Parsing {filename}...")
+        results[filename] = _parse_single_pdf(path)
+
+    with open("parsed.json", "w", encoding="utf-8") as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
+    print("Saved parsed data to parsed.json")
+    return results
 
 def parse_pdf():
     """Entry point for parsing PDFs."""
