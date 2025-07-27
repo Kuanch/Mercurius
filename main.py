@@ -70,45 +70,43 @@ def download_attachments(service, msg_id: str, dest_dir: Path) -> None:
     payload = message.get("payload", {})
     headers = {h["name"]: h["value"] for h in payload.get("headers", [])}
     subject = headers.get("Subject", "(No Subject)")
-    print(subject)
+    print(f"Processing message: {subject} (ID: {msg_id})")
 
     dest_dir.mkdir(parents=True, exist_ok=True)
     parts = list(iter_parts(payload))
-    attachments_downloaded = False
-    smime_found = False
 
     for part in parts:
         filename = part.get("filename")
-        mime_type = part.get("mimeType", "")
         body = part.get("body", {})
+        att_id = body.get("attachmentId")
 
-        if filename:
-            if filename == "smime.p7s" or mime_type.startswith("application/pkcs7"):
-                smime_found = True
-                continue
-            att_id = body.get("attachmentId")
-            data = body.get("data")
-            if att_id:
-                att = service.users().messages().attachments().get(userId="me", messageId=msg_id, id=att_id).execute()
-                data = att["data"]
-            if data:
-                file_data = base64.urlsafe_b64decode(data.encode("UTF-8"))
-                out_path = dest_dir / filename
-                out_path.write_bytes(file_data)
-                print(f"Saved attachment: {out_path}")
-                attachments_downloaded = True
+        if not filename or not att_id:
+            continue
+        if not filename.endswith(".pdf"):
+            print(f"Skipping non-PDF attachment: {filename}")
+            continue
 
-    if not attachments_downloaded and smime_found:
-        raw_dir = dest_dir / "smime_raw"
-        raw_dir.mkdir(parents=True, exist_ok=True)
-        save_raw_email(service, msg_id, raw_dir / f"{msg_id}.eml")
+        att = service.users().messages().attachments().get(userId="me", messageId=msg_id, id=att_id).execute()
+        data = att["data"]
+
+        if data:
+            file_data = base64.urlsafe_b64decode(data.encode("UTF-8"))
+            out_path = dest_dir / filename
+            out_path.write_bytes(file_data)
+            print(f"Saved attachment: {out_path}")
+        else:
+            print(f"Download failed for {filename} since the data part is missing, downloading raw mail.")
+            raw_dir = dest_dir / "smime_raw"
+            raw_dir.mkdir(parents=True, exist_ok=True)
+            save_raw_email(service, msg_id, raw_dir / f"{msg_id}.eml")
+
 
 
 def main():
     try:
         service = get_service()
         a_month_ago = int(time.time()) - 30 * 24 * 60 * 60
-        query = f"subject:信用卡 subject:帳單 has:attachment after:{a_month_ago}"
+        query = f"subject:信用卡 subject:帳單 has:attachment filename:.pdf larger:200K after:{a_month_ago} "
         message_ids = search_messages(service, query)
         dest = Path("attachments")
         for msg_id in message_ids:
