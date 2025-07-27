@@ -101,7 +101,6 @@ def download_attachments(service, msg_id: str, dest_dir: Path) -> None:
             save_raw_email(service, msg_id, raw_dir / f"{msg_id}.eml")
 
 
-
 def main():
     try:
         service = get_service()
