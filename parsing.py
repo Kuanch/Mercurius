@@ -107,6 +107,3 @@ def parse_pdf():
     """Entry point for parsing PDFs."""
     uncrypt_pdf()
     parsing()
-
-if __name__ == "__main__":
-    parse_pdf()
