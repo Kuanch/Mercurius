@@ -25,11 +25,19 @@ and pypdf
 ```
 pip install pypdf cryptography>=3.1
 ```
+and the OpenAI client
+```
+pip install openai
+```
 
 ## Usage
-Run the script:
+Run the script to download and parse your bills:
 ```
 python main.py
 ```
 
-The script searches for credit card bill emails from the last month and downloads their attachments, parses the content of the bills, and finally feed into OpenAI API, you can interact it with the input box later showing up.
+After `parsed.txt` is generated you can chat with ChatGPT about the data. Set the `OPENAI_API_KEY` environment variable and run:
+```
+python chat.py
+```
+The assistant will get the bill contents once and then you can ask follow up questions without resending the file each time.
