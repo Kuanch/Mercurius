@@ -1,4 +1,5 @@
 import os
+import pdb
 import openai
 
 PARSED_FILE = "parsed.txt"
@@ -13,12 +14,13 @@ def load_bill(path=PARSED_FILE) -> str:
         return f.read()
 
 
-def init_openai() -> None:
+def get_openai_key() -> None:
     """Configure the OpenAI client using the environment variable."""
-    api_key = os.getenv("OPENAI_API_KEY")
+    with open("chat_key.txt", "r") as f:
+        api_key = f.read().strip()
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY environment variable is not set")
-    openai.api_key = api_key
+    return api_key
 
 
 def send_initial(bill: str):
@@ -28,19 +30,29 @@ def send_initial(bill: str):
             "content": "You are a helpful assistant who can answer questions about the user's credit card bill.",
         },
     ]
+    key = get_openai_key()
 
     if bill:
-        messages.append({"role": "user", "content": f"Here is my credit card bill:\n{bill}"})
-        response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
-        reply = response.choices[0].message.content
-        print(reply)
+        client = openai.OpenAI(api_key=key)
+
+        input_text = f"Here is my credit card bill:\n{bill}, reply me if you received it."
+        messages.append({"role": "user", "content": input_text})
+        response = client.responses.create(
+            model="gpt-4.1",
+            input=input_text
+        )
+        reply = response.output[0].content[0].text
+        print(f"Assistant: {reply}")
         messages.append({"role": "assistant", "content": reply})
 
-    return messages
+    return client, messages
 
 
-def chat_loop(messages):
+def chat_loop(client, messages):
     """Simple CLI interaction loop."""
+    input_text = ""
+    for message in messages:
+        input_text += f"{message['role']}: {message['content']}\n"
     while True:
         try:
             user_input = input("You: ")
@@ -51,18 +63,20 @@ def chat_loop(messages):
             continue
         if user_input.lower() in {"quit", "exit"}:
             break
-        messages.append({"role": "user", "content": user_input})
-        response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
-        reply = response.choices[0].message.content
+        input_text += f"user: {user_input}\n"
+        response = client.responses.create(
+                    model="gpt-4.1",
+                    input=input_text,
+        )
+        reply = response.output[0].content[0].text
         print(f"Assistant: {reply}")
-        messages.append({"role": "assistant", "content": reply})
+        input_text += f"assistant: {reply}\n"
 
 
 def main():
-    init_openai()
     bill = load_bill()
-    history = send_initial(bill)
-    chat_loop(history)
+    client, history = send_initial(bill)
+    chat_loop(client, history)
 
 
 if __name__ == "__main__":
