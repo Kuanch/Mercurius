@@ -1,5 +1,5 @@
 # Mercurius
-Parse my mails and tell me what I want to know.
+Parse my credit card bills from Gmail and let ChatGPT tell me what I want to know.
 
 # Environment Setup
 ## Gmail API Setup
@@ -25,11 +25,34 @@ and pypdf
 ```
 pip install pypdf cryptography>=3.1
 ```
+and the OpenAI client
+```
+pip install openai
+```
 
 ## Usage
-Run the script:
+Run the script to download and parse your bills :
 ```
 python main.py
 ```
+I just trivially save the corresponding pdf passwords in `password.json` like :
+```
+{"CBG": CBG_PASSWORD, "TSB": TSB_PASSWORD, ...}
+```
+and read them by :
+```
+   with open("password.json", "r") as f:
+         passwords = json.load(f)
+   if filename.startswith("CBG"):
+         password = passwords["CBG"]
+   elif filename.startswith("TSB"):
+         password = passwords["TSB"]
+```
+so you might need to take care them by yourself.
 
-The script searches for credit card bill emails from the last month and downloads their attachments, parses the content of the bills, and finally feed into OpenAI API, you can interact it with the input box later showing up.
+After `parsed.txt` is generated you can chat with ChatGPT about the data. Make sure you get the api key from ChatGPT, by following the OpenAI [instructions](https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key),
+and put it into `chat_key.txt` then run :
+```
+python chat.py
+```
+The assistant will get the bill contents once and then you can ask follow up questions without resending the file each time.
