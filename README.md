@@ -31,12 +31,27 @@ pip install openai
 ```
 
 ## Usage
-Run the script to download and parse your bills:
+Run the script to download and parse your bills :
 ```
 python main.py
 ```
+I just trivially save the corresponding pdf passwords in `password.json` like :
+```
+{"CBG": CBG_PASSWORD, "TSB": TSB_PASSWORD, ...}
+```
+and read them by :
+```
+   with open("password.json", "r") as f:
+         passwords = json.load(f)
+   if filename.startswith("CBG"):
+         password = passwords["CBG"]
+   elif filename.startswith("TSB"):
+         password = passwords["TSB"]
+```
+so you might need to take care them by yourself.
 
-After `parsed.txt` is generated you can chat with ChatGPT about the data. Set the `OPENAI_API_KEY` environment variable and run:
+After `parsed.txt` is generated you can chat with ChatGPT about the data. Make sure you get the api key from ChatGPT, by following the OpenAI [instructions](https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key),
+and put it into `chat_key.txt` then run :
 ```
 python chat.py
 ```
