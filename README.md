@@ -1,5 +1,5 @@
 # Mercurius
-Parse my mails and tell me what I want to know.
+Parse my credit card bills from Gmail and let ChatGPT tell me what I want to know.
 
 # Environment Setup
 ## Gmail API Setup
