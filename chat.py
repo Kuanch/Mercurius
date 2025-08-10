@@ -3,6 +3,7 @@ import pdb
 import openai
 
 PARSED_FILE = "parsed.txt"
+GPT_MODEL = "o3" # Change to any listed here: https://platform.openai.com/docs/pricing
 
 
 def load_bill(path=PARSED_FILE) -> str:
@@ -23,6 +24,14 @@ def get_openai_key() -> None:
     return api_key
 
 
+def find_content(response) -> str:
+    """Extract content from text between start and end markers."""
+    for output in response.output:
+        if hasattr(output, 'content'):
+            return output.content[0].text
+    raise ValueError(f"No content found in the response, response: {response}")
+
+
 def send_initial(bill: str):
     messages = [
         {
@@ -38,10 +47,11 @@ def send_initial(bill: str):
         input_text = f"Here is my credit card bill:\n{bill}, reply me if you received it."
         messages.append({"role": "user", "content": input_text})
         response = client.responses.create(
-            model="gpt-4.1",
+            model=GPT_MODEL,
             input=input_text
         )
-        reply = response.output[0].content[0].text
+        # WTF?
+        reply = find_content(response)
         print(f"Assistant: {reply}")
         messages.append({"role": "assistant", "content": reply})
 
@@ -65,10 +75,10 @@ def chat_loop(client, messages):
             break
         input_text += f"user: {user_input}\n"
         response = client.responses.create(
-                    model="gpt-4.1",
+                    model=GPT_MODEL,
                     input=input_text,
         )
-        reply = response.output[0].content[0].text
+        reply = find_content(response)
         print(f"Assistant: {reply}")
         input_text += f"assistant: {reply}\n"
 
