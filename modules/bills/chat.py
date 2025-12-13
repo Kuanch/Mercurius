@@ -1,10 +1,7 @@
 import os
-import pdb
-import openai
+from core.services.llm import LLMService
 
 BILL_DIR = "bill"
-GPT_MODEL = "o3" # Change to any listed here: https://platform.openai.com/docs/pricing
-
 
 def select_bill() -> tuple[str, str]:
     """List available bills and let the user select one."""
@@ -43,53 +40,26 @@ def load_bill() -> tuple[str, str]:
     with open(path, "r", encoding="utf-8") as f:
         return f.read(), month
 
-
-def get_openai_key() -> None:
-    """Configure the OpenAI client using the environment variable."""
-    with open("chat_key.txt", "r") as f:
-        api_key = f.read().strip()
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY environment variable is not set")
-    return api_key
-
-
-def find_content(response) -> str:
-    """Extract content from text between start and end markers."""
-    for output in response.output:
-        if hasattr(output, 'content'):
-            return output.content[0].text
-    raise ValueError(f"No content found in the response, response: {response}")
-
-
-def send_initial(bill: str):
+def send_initial(llm: LLMService, bill: str):
     messages = [
         {
             "role": "system",
             "content": "You are a helpful assistant who can answer questions about the user's credit card bill.",
         },
     ]
-    key = get_openai_key()
 
     if bill:
-        client = openai.OpenAI(api_key=key)
-
         input_text = f"Here is my credit card bill:\n{bill}, reply me if you received it."
         messages.append({"role": "user", "content": input_text})
-        response = client.responses.create(
-            model=GPT_MODEL,
-            input=input_text
-        )
-        # WTF?
-        reply = find_content(response)
+        
+        reply = llm.chat(messages)
         print(f"Assistant: {reply}")
         messages.append({"role": "assistant", "content": reply})
 
-    return client, messages
+    return messages
 
-
-def chat_loop(client, messages, log_file=None):
+def chat_loop(llm: LLMService, messages, log_file=None):
     """Simple CLI interaction loop."""
-    input_text = ""
     
     # Log initial history
     if log_file:
@@ -97,8 +67,6 @@ def chat_loop(client, messages, log_file=None):
             for message in messages:
                 f.write(f"{message['role']}: {message['content']}\n")
 
-    for message in messages:
-        input_text += f"{message['role']}: {message['content']}\n"
     while True:
         try:
             user_input = input("You: ")
@@ -114,22 +82,17 @@ def chat_loop(client, messages, log_file=None):
             with open(log_file, "a", encoding="utf-8") as f:
                 f.write(f"user: {user_input}\n")
 
-        input_text += f"user: {user_input}\n"
-        response = client.responses.create(
-                    model=GPT_MODEL,
-                    input=input_text,
-        )
-        reply = find_content(response)
+        messages.append({"role": "user", "content": user_input})
+        
+        reply = llm.chat(messages)
         print(f"Assistant: {reply}")
+        messages.append({"role": "assistant", "content": reply})
         
         if log_file:
             with open(log_file, "a", encoding="utf-8") as f:
                 f.write(f"assistant: {reply}\n")
 
-        input_text += f"assistant: {reply}\n"
-
-
-def main():
+def run_chat():
     bill, month = load_bill()
     if not bill:
         return
@@ -142,9 +105,6 @@ def main():
     log_file = os.path.join(chat_dir, f"chat_{month}.txt")
     print(f"Conversation will be recorded to {log_file}")
     
-    client, history = send_initial(bill)
-    chat_loop(client, history, log_file)
-
-
-if __name__ == "__main__":
-    main()
+    llm = LLMService()
+    history = send_initial(llm, bill)
+    chat_loop(llm, history, log_file)

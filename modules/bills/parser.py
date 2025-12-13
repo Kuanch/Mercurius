@@ -3,7 +3,6 @@ import json
 import re
 from pypdf import PdfReader, PdfWriter
 
-
 def uncrypt(src_path: str, dst_path: str, password: str) -> None:
     """Decrypt a PDF file with the given password."""
     reader = PdfReader(src_path)
@@ -24,21 +23,30 @@ def uncrypt(src_path: str, dst_path: str, password: str) -> None:
 def uncrypt_pdf():
     if not os.path.exists("unlocked"):
         os.makedirs("unlocked")
+    
+    if not os.path.exists("attachments"):
+        print("No attachments directory found.")
+        return
+
     for filename in os.listdir("attachments"):
         if filename.endswith(".pdf"):
             src_path = os.path.join("attachments", filename)
             dst_path = os.path.join("unlocked", filename)
 
-            with open("password.json", "r") as f:
-                passwords = json.load(f)
+            passwords = {}
+            if os.path.exists("password.json"):
+                with open("password.json", "r") as f:
+                    passwords = json.load(f)
+            
             if filename.startswith("CBG"):
-                password = passwords["CBG"]
+                password = passwords.get("CBG")
             elif filename.startswith("TSB"):
-                password = passwords["TSB"]
+                password = passwords.get("TSB")
             elif filename.startswith("永豐"):
-                password = passwords["SINO"]
+                password = passwords.get("SINO")
             else:
-                password = "F128566230"
+                password = "F128566230" # Default fallback
+            
             uncrypt(src_path, dst_path, password)
 
 def parse_single_pdf(pdf_path: str) -> dict:
@@ -115,9 +123,8 @@ def parsing():
             month = month.zfill(2)
             
             # Append filename for context
-            # line = f"{tx['consume']} {tx['post']} {tx['desc']} {tx['amount']} {filename}"
             line = f"{tx['consume']} {tx['desc']} {tx['amount']}"
-
+            
             if month not in monthly_bills:
                 monthly_bills[month] = []
             monthly_bills[month].append(line)

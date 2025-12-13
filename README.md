@@ -31,32 +31,34 @@ pip install openai
 ```
 
 ## Usage
-Run the script to download and parse your bills :
-```
-python main.py
-```
-I just trivially save the corresponding pdf passwords in `password.json` like :
-```
-{"CBG": CBG_PASSWORD, "TSB": TSB_PASSWORD, ...}
-```
-and read them by :
-```
-   with open("password.json", "r") as f:
-         passwords = json.load(f)
-   if filename.startswith("CBG"):
-         password = passwords["CBG"]
-   elif filename.startswith("TSB"):
-         password = passwords["TSB"]
-```
-so you might need to take care them by yourself.
+## Usage
 
-After running `main.py`, the parsed bills will be saved in the `bill/` folder, organized by month (e.g., `bills_11.txt`).
+### Bill Analyzer
+The project now uses a unified CLI.
 
-You can then chat with ChatGPT about a specific month's bill. Make sure you get the api key from ChatGPT, by following the OpenAI [instructions](https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key),
-and put it into `chat_key.txt` then run :
-```
-python chat.py
-```
-The script will prompt you to select a month (e.g., enter `11` for November). The assistant will get the bill contents for that month.
+1. **Download Bills**:
+   ```
+   python main.py bills download
+   ```
+   Downloads PDF attachments from Gmail to `attachments/`.
 
-The conversation will be automatically recorded in the `chat/` folder (e.g., `chat/chat_11.txt`).
+2. **Parse Bills**:
+   ```
+   python main.py bills parse
+   ```
+   Decrypts and parses PDFs into `bill/` folder (e.g., `bills_11.txt`).
+
+3. **Chat with Bills**:
+   ```
+   python main.py bills chat
+   ```
+   Select a month and chat with the assistant about your expenses.
+   Conversations are recorded in `chat/`.
+
+### Newsletter Sweeper (Web API)
+To run the web server for email management:
+```
+python main.py server
+```
+The API will be available at `http://localhost:8000`.
+Docs: `http://localhost:8000/docs`
