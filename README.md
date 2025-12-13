@@ -50,9 +50,13 @@ and read them by :
 ```
 so you might need to take care them by yourself.
 
-After `parsed.txt` is generated you can chat with ChatGPT about the data. Make sure you get the api key from ChatGPT, by following the OpenAI [instructions](https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key),
+After running `main.py`, the parsed bills will be saved in the `bill/` folder, organized by month (e.g., `bills_11.txt`).
+
+You can then chat with ChatGPT about a specific month's bill. Make sure you get the api key from ChatGPT, by following the OpenAI [instructions](https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key),
 and put it into `chat_key.txt` then run :
 ```
 python chat.py
 ```
-The assistant will get the bill contents once and then you can ask follow up questions without resending the file each time.
+The script will prompt you to select a month (e.g., enter `11` for November). The assistant will get the bill contents for that month.
+
+The conversation will be automatically recorded in the `chat/` folder (e.g., `chat/chat_11.txt`).

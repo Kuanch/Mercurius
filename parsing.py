@@ -38,7 +38,7 @@ def uncrypt_pdf():
             elif filename.startswith("永豐"):
                 password = passwords["SINO"]
             else:
-                password = None
+                password = "F128566230"
             uncrypt(src_path, dst_path, password)
 
 def parse_single_pdf(pdf_path: str) -> dict:
@@ -92,15 +92,43 @@ def parsing():
         print(f"Parsing {filename}...")
         results[filename] = parse_single_pdf(path)
 
-    with open("parsed.txt", "w", encoding="utf-8") as f:
-        for filename, data in results.items():
-            if not data['transactions']:
-                continue
-            f.write(f"File: {filename}\n")
-            for tx in data['transactions']:
-                f.write(f"{tx['consume']} {tx['post']} {tx['desc']} {tx['amount']}\n")
-            f.write("\n")
-    print("Saved parsed data to parsed.json")
+    if not os.path.exists("bill"):
+        os.makedirs("bill")
+
+    monthly_bills = {}
+
+    for filename, data in results.items():
+        if not data['transactions']:
+            print(f"No transactions found in {filename}, skipping.")
+            continue
+        
+        for tx in data['transactions']:
+            # Extract month from consume date
+            date_str = tx['consume']
+            parts = date_str.split('/')
+            month = "00"
+            if len(parts) == 2:
+                month = parts[0]
+            elif len(parts) == 3:
+                month = parts[1]
+            
+            month = month.zfill(2)
+            
+            # Append filename for context
+            # line = f"{tx['consume']} {tx['post']} {tx['desc']} {tx['amount']} {filename}"
+            line = f"{tx['consume']} {tx['desc']} {tx['amount']}"
+
+            if month not in monthly_bills:
+                monthly_bills[month] = []
+            monthly_bills[month].append(line)
+
+    for month, lines in monthly_bills.items():
+        out_path = os.path.join("bill", f"bills_{month}.txt")
+        with open(out_path, "w", encoding="utf-8") as f:
+            for line in lines:
+                f.write(line + "\n")
+
+    print(f"Saved parsed data to bill/ folder (months: {', '.join(monthly_bills.keys())})")
     return results
 
 def parse_pdf():

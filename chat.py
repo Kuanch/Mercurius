@@ -2,17 +2,46 @@ import os
 import pdb
 import openai
 
-PARSED_FILE = "parsed.txt"
+BILL_DIR = "bill"
 GPT_MODEL = "o3" # Change to any listed here: https://platform.openai.com/docs/pricing
 
 
-def load_bill(path=PARSED_FILE) -> str:
+def select_bill() -> tuple[str, str]:
+    """List available bills and let the user select one."""
+    if not os.path.exists(BILL_DIR):
+        print(f"Directory {BILL_DIR} does not exist.")
+        return "", ""
+    
+    files = [f for f in os.listdir(BILL_DIR) if f.startswith("bills_") and f.endswith(".txt")]
+    files.sort()
+    
+    if not files:
+        print(f"No bill files found in {BILL_DIR}.")
+        return "", ""
+        
+    print("Available bills:")
+    months = []
+    for f in files:
+        # Extract month from bills_XX.txt
+        month = f.split("_")[1].split(".")[0]
+        months.append(month)
+        print(f" - {month}")
+        
+    while True:
+        selection = input("Select month (e.g. 11): ").strip()
+        if selection in months:
+            return os.path.join(BILL_DIR, f"bills_{selection}.txt"), selection
+        print("Invalid selection. Please try again.")
+
+def load_bill() -> tuple[str, str]:
     """Return the content of the parsed credit card bill if available."""
-    if not os.path.exists(path):
-        print(f"Could not find {path}, continuing without initial context.")
-        return ""
+    path, month = select_bill()
+    if not path:
+        return "", ""
+        
+    print(f"Loading bill from {path}...")
     with open(path, "r", encoding="utf-8") as f:
-        return f.read()
+        return f.read(), month
 
 
 def get_openai_key() -> None:
@@ -58,9 +87,16 @@ def send_initial(bill: str):
     return client, messages
 
 
-def chat_loop(client, messages):
+def chat_loop(client, messages, log_file=None):
     """Simple CLI interaction loop."""
     input_text = ""
+    
+    # Log initial history
+    if log_file:
+        with open(log_file, "w", encoding="utf-8") as f:
+            for message in messages:
+                f.write(f"{message['role']}: {message['content']}\n")
+
     for message in messages:
         input_text += f"{message['role']}: {message['content']}\n"
     while True:
@@ -73,6 +109,11 @@ def chat_loop(client, messages):
             continue
         if user_input.lower() in {"quit", "exit"}:
             break
+            
+        if log_file:
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(f"user: {user_input}\n")
+
         input_text += f"user: {user_input}\n"
         response = client.responses.create(
                     model=GPT_MODEL,
@@ -80,13 +121,29 @@ def chat_loop(client, messages):
         )
         reply = find_content(response)
         print(f"Assistant: {reply}")
+        
+        if log_file:
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(f"assistant: {reply}\n")
+
         input_text += f"assistant: {reply}\n"
 
 
 def main():
-    bill = load_bill()
+    bill, month = load_bill()
+    if not bill:
+        return
+        
+    # Ensure chat directory exists
+    chat_dir = "chat"
+    if not os.path.exists(chat_dir):
+        os.makedirs(chat_dir)
+        
+    log_file = os.path.join(chat_dir, f"chat_{month}.txt")
+    print(f"Conversation will be recorded to {log_file}")
+    
     client, history = send_initial(bill)
-    chat_loop(client, history)
+    chat_loop(client, history, log_file)
 
 
 if __name__ == "__main__":
