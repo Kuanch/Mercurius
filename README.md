@@ -62,3 +62,12 @@ python main.py server
 ```
 The API will be available at `http://localhost:8000`.
 Docs: `http://localhost:8000/docs`
+
+### Web UI
+To run the frontend interface:
+```
+cd web
+npm install
+npm run dev
+```
+The UI will be available at `http://localhost:5173`.
