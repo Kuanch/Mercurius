@@ -38,10 +38,15 @@ class ActDraftReply(BaseModel):
 
 Action = Union[ActLabel, ActArchive, ActMoveTo, ActMarkRead, ActStar, ActUnstar, ActDraftReply]
 
+class SmartFilter(BaseModel):
+    topic: Optional[Literal["Work", "Finance", "Promotion", "Social", "Updates", "Forum", "Spam"]] = None
+    urgency: Optional[Literal["High", "Medium", "Low"]] = None
+
 class Plan(BaseModel):
     goal: str
     queries: List[GmailQuery]
     actions: List[Action]
+    smart_filters: Optional[SmartFilter] = None
     dry_run: bool = True
     confirm: bool = False
     limits: Limits = Field(default_factory=Limits)
