@@ -28,6 +28,7 @@ PDF_PASSWORDS = {
     "TSB": os.getenv("PDF_PASSWORD_TSB", ""),
     "SINO": os.getenv("PDF_PASSWORD_SINO", ""),
     "FUBON": os.getenv("PDF_PASSWORD_FUBON", ""),
+    "CATHAY": os.getenv("PDF_PASSWORD_CATHAY", ""),
 }
 
 # OpenAI

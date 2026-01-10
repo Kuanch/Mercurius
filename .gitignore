@@ -217,3 +217,7 @@ chat_key.txt
 parsed.txt
 bill/
 node_modules/
+
+# Sensitive credentials - never commit
+credentials.json
+token.json.old
