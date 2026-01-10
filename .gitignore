@@ -205,3 +205,15 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Mercurius specific
+data/
+attachments/
+unlocked/
+*.db
+token.json
+password.json
+chat_key.txt
+parsed.txt
+bill/
+node_modules/
