@@ -11,10 +11,13 @@ from src.analysis import (
     get_monthly_trend,
     calculate_average_spending
 )
+from src.db import TransactionRepository, BillRepository
 
 
 def build_spending_context() -> str:
     """Build context about user's spending for the AI."""
+    from datetime import timedelta
+
     today = date.today()
     year, month = today.year, today.month
 
@@ -38,11 +41,13 @@ def build_spending_context() -> str:
     context = f"""User's Credit Card Spending Data:
 
 Current Month ({year}/{month}):
-- Total: TWD {current['total_amount']:,.0f}
+- Gross Spending: TWD {current.get('gross_spending', current['total_amount']):,.0f}
+- Cashback/Refunds: TWD {current.get('credits', 0):,.0f}
+- Net Spending: TWD {current['total_amount']:,.0f}
 - Transactions: {current['transaction_count']}
 
 Last Month ({last_year}/{last_month}):
-- Total: TWD {previous['total_amount']:,.0f}
+- Net Spending: TWD {previous['total_amount']:,.0f}
 - Transactions: {previous['transaction_count']}
 
 6-Month Average: TWD {averages['average']:,.0f}
@@ -56,6 +61,40 @@ Category Breakdown (This Month):
     context += "\nTop Merchants (This Month):\n"
     for m in merchants:
         context += f"- {m['merchant']}: TWD {m['total_amount']:,.0f}\n"
+
+    # Add transaction-level details
+    context += "\n--- Transaction Details (Recent Bills) ---\n"
+
+    # Get all bills and their transactions
+    bills = BillRepository.get_all()
+    repo = TransactionRepository()
+    all_txs = repo.get_all()
+
+    for bill in sorted(bills, key=lambda b: b.statement_date or date.min, reverse=True)[:4]:
+        bill_txs = [t for t in all_txs if t.bill_id == bill.id]
+        if not bill_txs:
+            continue
+
+        context += f"\n{bill.bank.upper()} (Statement: {bill.statement_date}):\n"
+
+        # Sort by date and amount
+        spending_txs = sorted(
+            [t for t in bill_txs if t.amount > 0],
+            key=lambda t: (-t.amount, t.transaction_date)
+        )
+
+        for tx in spending_txs[:15]:  # Top 15 transactions per bill
+            context += f"  {tx.transaction_date} | TWD {tx.amount:,.0f} | {tx.merchant[:40]}\n"
+
+        if len(spending_txs) > 15:
+            context += f"  ... and {len(spending_txs) - 15} more transactions\n"
+
+        # Show credits/cashback if any
+        credit_txs = [t for t in bill_txs if t.amount < 0]
+        if credit_txs:
+            context += f"  Credits/Cashback:\n"
+            for tx in credit_txs[:5]:
+                context += f"    {tx.transaction_date} | TWD {tx.amount:,.0f} | {tx.merchant[:35]}\n"
 
     return context
 
@@ -97,10 +136,8 @@ Respond in the same language the user uses (Chinese or English).
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-            temperature=0.7,
-            max_tokens=500
+            model="o3",
+            messages=messages
         )
         return response.choices[0].message.content
     except Exception as e:

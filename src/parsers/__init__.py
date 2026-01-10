@@ -8,6 +8,7 @@ from src.parsers.fubon import FubonParser
 from src.parsers.sinopac import SinopacParser
 from src.parsers.tsb import TsbParser
 from src.parsers.cbcc import CbccParser
+from src.parsers.cathay import CathayParser
 
 
 # Mapping of filename prefixes to parser classes
@@ -18,6 +19,7 @@ PARSER_MAP = {
     "TSB": TsbParser,
     "CBG": CbccParser,
     "CBGCC": CbccParser,
+    "信用卡電子帳單消費明細": CathayParser,
 }
 
 
@@ -71,6 +73,7 @@ __all__ = [
     "SinopacParser",
     "TsbParser",
     "CbccParser",
+    "CathayParser",
     "get_parser_for_file",
     "parse_pdf",
     "parse_all_pdfs",

@@ -120,9 +120,19 @@ def summary(year, month):
     data = get_monthly_summary(year, month)
     categories = get_spending_by_category(year, month)
 
-    panel = Panel(
-        f"[bold]Total:[/bold] TWD {data['total_amount']:,.0f}\n"
+    # Build summary text
+    summary_lines = [
+        f"[bold]Gross Spending:[/bold] TWD {data.get('gross_spending', data['total_amount']):,.0f}",
+    ]
+    if data.get('credits', 0) != 0:
+        summary_lines.append(f"[bold]Cashback/Refunds:[/bold] TWD {data['credits']:,.0f}")
+    summary_lines.extend([
+        f"[bold]Net Spending:[/bold] TWD {data['total_amount']:,.0f}",
         f"[bold]Transactions:[/bold] {data['transaction_count']}",
+    ])
+
+    panel = Panel(
+        "\n".join(summary_lines),
         title=f"Spending Summary - {year}/{month:02d}",
         border_style="green"
     )

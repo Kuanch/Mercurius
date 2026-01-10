@@ -8,7 +8,9 @@ from sqlalchemy import extract, func
 
 
 def get_spending_by_category(year: int = None, month: int = None) -> List[Dict]:
-    """Get spending breakdown by category."""
+    """Get spending breakdown by category for bills in the specified period."""
+    from src.db.models import Bill
+
     with get_session() as session:
         query = session.query(
             Category.name,
@@ -16,10 +18,16 @@ def get_spending_by_category(year: int = None, month: int = None) -> List[Dict]:
             func.count(Transaction.id).label('count')
         ).outerjoin(Transaction).group_by(Category.id)
 
-        if year:
-            query = query.filter(extract('year', Transaction.transaction_date) == year)
-        if month:
-            query = query.filter(extract('month', Transaction.transaction_date) == month)
+        # Filter by bill statement date instead of transaction date
+        if year or month:
+            query = query.join(Bill, Transaction.bill_id == Bill.id)
+            if year:
+                query = query.filter(extract('year', Bill.statement_date) == year)
+            if month:
+                query = query.filter(extract('month', Bill.statement_date) == month)
+
+        # Only include positive spending transactions
+        query = query.filter(Transaction.amount > 0)
 
         results = query.all()
         return [
@@ -29,6 +37,7 @@ def get_spending_by_category(year: int = None, month: int = None) -> List[Dict]:
                 "transaction_count": count or 0
             }
             for name, total, count in results
+            if total and total > 0
         ]
 
 

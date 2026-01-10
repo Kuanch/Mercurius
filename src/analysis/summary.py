@@ -8,21 +8,49 @@ from sqlalchemy import extract, func
 
 
 def get_monthly_summary(year: int, month: int) -> Dict:
-    """Get spending summary for a specific month."""
+    """Get spending summary for bills with statement date in the specified month.
+
+    This groups by billing period (statement date) rather than individual
+    transaction dates, which better reflects credit card billing cycles.
+    """
+    from src.db.models import Bill
+
     with get_session() as session:
-        transactions = session.query(Transaction).filter(
-            extract('year', Transaction.transaction_date) == year,
-            extract('month', Transaction.transaction_date) == month
+        # Get bills with statement date in the specified month
+        bills = session.query(Bill).filter(
+            extract('year', Bill.statement_date) == year,
+            extract('month', Bill.statement_date) == month
         ).all()
 
-        total = sum(tx.amount for tx in transactions)
-        count = len(transactions)
+        bill_ids = [b.id for b in bills]
+
+        # Get all transactions for these bills
+        transactions = session.query(Transaction).filter(
+            Transaction.bill_id.in_(bill_ids)
+        ).all() if bill_ids else []
+
+        # Calculate gross spending (positive amounts only, excluding payments)
+        spending_txs = [tx for tx in transactions if tx.amount > 0]
+        gross_spending = sum(tx.amount for tx in spending_txs)
+
+        # Calculate credits/cashback (negative amounts, excluding payment entries)
+        credit_txs = [tx for tx in transactions
+                      if tx.amount < 0
+                      and '自扣' not in tx.merchant
+                      and '繳款' not in tx.merchant
+                      and '入帳' not in tx.merchant]
+        credits = sum(tx.amount for tx in credit_txs)
+
+        # Net spending = gross - cashback/refunds
+        net_spending = gross_spending + credits
 
         return {
             "year": year,
             "month": month,
-            "total_amount": round(total, 2),
-            "transaction_count": count,
+            "gross_spending": round(gross_spending, 2),
+            "credits": round(credits, 2),
+            "total_amount": round(net_spending, 2),
+            "transaction_count": len(spending_txs),
         }
 
 
