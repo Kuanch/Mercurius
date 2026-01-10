@@ -140,11 +140,22 @@ class GenericParser(BaseParser):
 
     def detect_statement_date(self) -> Optional[date]:
         """Try to extract statement date from filename or content."""
-        # Try filename first (common pattern: BANK_Estatement_YYYMM.pdf)
         filename = self.pdf_path.stem
+
+        # Try YYYYMM format first (e.g., 202507)
+        date_match = re.search(r'(\d{4})(\d{2})', filename)
+        if date_match:
+            year = int(date_match.group(1))
+            month = int(date_match.group(2))
+            if 1 <= month <= 12 and 2000 <= year <= 2100:
+                return date(year, month, 1)
+
+        # Try ROC year format YYYMM (e.g., 11406 = 2025/06)
         date_match = re.search(r'(\d{3})(\d{2})', filename)
         if date_match:
             year = int(date_match.group(1)) + 1911
             month = int(date_match.group(2))
-            return date(year, month, 1)
+            if 1 <= month <= 12:
+                return date(year, month, 1)
+
         return None
