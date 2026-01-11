@@ -133,20 +133,20 @@ function BillCard({ bill, onToggle, isOpen }) {
               <table className="w-full text-left text-sm">
                 <thead className="bg-gray-800/40 text-gray-400 font-semibold border-b border-border-dark">
                   <tr>
-                    <th className="px-6 py-4 w-24">
-                      <button onClick={() => handleSort('date')} className="flex items-center gap-1 hover:text-white transition-colors">
+                    <th className="px-6 py-4 w-24 cursor-pointer select-none" onClick={() => handleSort('date')}>
+                      <span className="flex items-center gap-1 hover:text-white transition-colors">
                         Date <SortIcon field="date" sortField={sortField} sortOrder={sortOrder} />
-                      </button>
+                      </span>
                     </th>
-                    <th className="px-6 py-4">
-                      <button onClick={() => handleSort('merchant')} className="flex items-center gap-1 hover:text-white transition-colors">
+                    <th className="px-6 py-4 cursor-pointer select-none" onClick={() => handleSort('merchant')}>
+                      <span className="flex items-center gap-1 hover:text-white transition-colors">
                         Merchant <SortIcon field="merchant" sortField={sortField} sortOrder={sortOrder} />
-                      </button>
+                      </span>
                     </th>
-                    <th className="px-6 py-4 text-right">
-                      <button onClick={() => handleSort('amount')} className="flex items-center gap-1 ml-auto hover:text-white transition-colors">
+                    <th className="px-6 py-4 text-right cursor-pointer select-none" onClick={() => handleSort('amount')}>
+                      <span className="flex items-center gap-1 justify-end hover:text-white transition-colors">
                         Amount <SortIcon field="amount" sortField={sortField} sortOrder={sortOrder} />
-                      </button>
+                      </span>
                     </th>
                   </tr>
                 </thead>
