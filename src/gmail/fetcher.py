@@ -76,25 +76,41 @@ def download_attachments(service, msg_id: str, dest_dir: Path) -> List[Path]:
     return downloaded
 
 
-def fetch_bills(days: int = None) -> List[Path]:
+def fetch_bills(days: int = None, year: int = None, month: int = None) -> List[Path]:
     """
     Fetch credit card bills from Gmail.
 
     Args:
-        days: Number of days to search back (default from config)
+        days: Number of days to search back (default from config, ignored if year/month specified)
+        year: Specific year to fetch (e.g., 2025)
+        month: Specific month to fetch (1-12)
 
     Returns:
         List of paths to downloaded PDF files
     """
-    if days is None:
-        days = GMAIL_SEARCH_DAYS
+    import calendar
+    from datetime import datetime
 
     try:
         service = get_gmail_service()
-        after_ts = int(time.time()) - days * 24 * 60 * 60
-        query = f"{GMAIL_SEARCH_QUERY} after:{after_ts}"
 
-        print(f"Searching Gmail for bills from last {days} days...")
+        if year and month:
+            # Fetch specific month
+            start_date = datetime(year, month, 1)
+            _, last_day = calendar.monthrange(year, month)
+            end_date = datetime(year, month, last_day, 23, 59, 59)
+            after_ts = int(start_date.timestamp())
+            before_ts = int(end_date.timestamp())
+            query = f"{GMAIL_SEARCH_QUERY} after:{after_ts} before:{before_ts}"
+            print(f"Searching Gmail for bills from {year}-{month:02d}...")
+        else:
+            # Fetch last N days
+            if days is None:
+                days = GMAIL_SEARCH_DAYS
+            after_ts = int(time.time()) - days * 24 * 60 * 60
+            query = f"{GMAIL_SEARCH_QUERY} after:{after_ts}"
+            print(f"Searching Gmail for bills from last {days} days...")
+
         message_ids = search_messages(service, query)
         print(f"Found {len(message_ids)} messages with potential bills")
 

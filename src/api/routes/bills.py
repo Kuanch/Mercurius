@@ -1,5 +1,5 @@
 """Bills API routes."""
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Query
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date
@@ -71,9 +71,9 @@ def get_bill(bill_id: int):
     }
 
 
-def sync_bills_task(days: int):
+def sync_bills_task(days: int = None, year: int = None, month: int = None):
     """Background task to sync bills."""
-    pdf_files = fetch_bills(days)
+    pdf_files = fetch_bills(days=days, year=year, month=month)
     bills_processed = 0
     transactions_imported = 0
 
@@ -106,10 +106,14 @@ def sync_bills_task(days: int):
 
 
 @router.post("/sync", response_model=SyncResponse)
-def sync_bills(days: int = 30):
-    """Sync bills from Gmail."""
+def sync_bills(
+    days: int = Query(None, description="Days to look back (ignored if year/month provided)"),
+    year: int = Query(None, description="Specific year to sync"),
+    month: int = Query(None, ge=1, le=12, description="Specific month to sync (1-12)")
+):
+    """Sync bills from Gmail for a specific month or last N days."""
     try:
-        bills_processed, transactions_imported = sync_bills_task(days)
+        bills_processed, transactions_imported = sync_bills_task(days=days, year=year, month=month)
         return SyncResponse(
             message="Sync completed",
             bills_processed=bills_processed,

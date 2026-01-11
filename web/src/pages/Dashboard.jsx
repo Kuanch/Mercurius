@@ -164,12 +164,13 @@ export default function Dashboard() {
   const handleSync = async () => {
     setSyncing(true)
     try {
-      const res = await fetch('/api/bills/sync', { method: 'POST' })
+      const [year, month] = selectedMonth.split('-')
+      const res = await fetch(`/api/bills/sync?year=${year}&month=${month}`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) {
         alert(data.detail || 'Sync failed')
       } else {
-        alert(`Synced ${data.bills_processed} bills, ${data.transactions_imported} transactions`)
+        alert(`Synced ${data.bills_processed} bills, ${data.transactions_imported} transactions for ${year}-${month}`)
         window.location.reload()
       }
     } catch (e) {
