@@ -34,11 +34,15 @@ def list_bills():
     bills = BillRepository.get_all()
     result = []
     for bill in bills:
+        # Calculate total from transactions if not set
+        total = bill.total_amount
+        if total is None and bill.transactions:
+            total = sum(tx.amount for tx in bill.transactions if tx.amount > 0)
         result.append(BillResponse(
             id=bill.id,
             bank=bill.bank,
             statement_date=bill.statement_date,
-            total_amount=bill.total_amount,
+            total_amount=total,
             transaction_count=len(bill.transactions) if bill.transactions else 0
         ))
     return result
@@ -104,9 +108,20 @@ def sync_bills_task(days: int):
 @router.post("/sync", response_model=SyncResponse)
 def sync_bills(days: int = 30):
     """Sync bills from Gmail."""
-    bills_processed, transactions_imported = sync_bills_task(days)
-    return SyncResponse(
-        message="Sync completed",
-        bills_processed=bills_processed,
-        transactions_imported=transactions_imported
-    )
+    try:
+        bills_processed, transactions_imported = sync_bills_task(days)
+        return SyncResponse(
+            message="Sync completed",
+            bills_processed=bills_processed,
+            transactions_imported=transactions_imported
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        error_msg = str(e)
+        if "invalid_grant" in error_msg or "refresh" in error_msg.lower():
+            raise HTTPException(
+                status_code=401,
+                detail="Gmail authentication expired. Please run 'python -m cli sync' in terminal to re-authenticate."
+            )
+        raise HTTPException(status_code=500, detail=f"Sync failed: {error_msg}")

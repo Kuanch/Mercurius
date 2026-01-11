@@ -1,1 +1,61 @@
 @import "tailwindcss";
+
+@theme {
+  --color-primary: #137fec;
+  --color-background-light: #f6f7f8;
+  --color-background-dark: #111827;
+  --color-surface-light: #ffffff;
+  --color-surface-dark: #1f2937;
+  --color-border-light: #dbe0e6;
+  --color-border-dark: #374151;
+  --color-hover-dark: #374151;
+  --font-display: "Inter", sans-serif;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Category badge colors */
+.badge-dining { @apply bg-orange-900/40 text-orange-200 border-orange-700/30; }
+.badge-shopping { @apply bg-rose-900/40 text-rose-200 border-rose-700/30; }
+.badge-transport { @apply bg-blue-900/40 text-blue-200 border-blue-700/30; }
+.badge-entertainment { @apply bg-purple-900/40 text-purple-200 border-purple-700/30; }
+.badge-groceries { @apply bg-emerald-900/40 text-emerald-200 border-emerald-700/30; }
+.badge-utilities { @apply bg-cyan-900/40 text-cyan-200 border-cyan-700/30; }
+.badge-healthcare { @apply bg-pink-900/40 text-pink-200 border-pink-700/30; }
+.badge-travel { @apply bg-indigo-900/40 text-indigo-200 border-indigo-700/30; }
+.badge-other { @apply bg-gray-800/40 text-gray-200 border-gray-700/30; }
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}

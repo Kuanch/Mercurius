@@ -17,8 +17,13 @@ def get_gmail_service():
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
+            try:
+                creds.refresh(Request())
+            except Exception:
+                # Token refresh failed, need to re-authenticate
+                creds = None
+
+        if not creds:
             if not CREDENTIALS_FILE.exists():
                 raise FileNotFoundError(
                     f"credentials.json not found at {CREDENTIALS_FILE}. "

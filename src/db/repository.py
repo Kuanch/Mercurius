@@ -2,7 +2,7 @@
 from datetime import date, datetime
 from typing import List, Optional
 from sqlalchemy import func, extract
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from src.db.models import Bill, Transaction, Category, MerchantCategory, get_session
 
@@ -29,12 +29,24 @@ class BillRepository:
     @staticmethod
     def get_by_id(bill_id: int) -> Optional[Bill]:
         with get_session() as session:
-            return session.query(Bill).filter_by(id=bill_id).first()
+            bill = session.query(Bill).options(
+                joinedload(Bill.transactions)
+            ).filter_by(id=bill_id).first()
+            if bill:
+                # Access transactions while session is open to load them
+                _ = bill.transactions
+            return bill
 
     @staticmethod
     def get_all() -> List[Bill]:
         with get_session() as session:
-            return session.query(Bill).order_by(Bill.statement_date.desc()).all()
+            bills = session.query(Bill).options(
+                joinedload(Bill.transactions)
+            ).order_by(Bill.statement_date.desc()).all()
+            # Access transactions while session is open
+            for bill in bills:
+                _ = bill.transactions
+            return bills
 
     @staticmethod
     def exists(bank: str, statement_date: date) -> bool:
@@ -91,12 +103,18 @@ class TransactionRepository:
     @staticmethod
     def get_all(limit: int = None, offset: int = 0) -> List[Transaction]:
         with get_session() as session:
-            query = session.query(Transaction).order_by(Transaction.transaction_date.desc())
+            query = session.query(Transaction).options(
+                joinedload(Transaction.category)
+            ).order_by(Transaction.transaction_date.desc())
             if offset:
                 query = query.offset(offset)
             if limit:
                 query = query.limit(limit)
-            return query.all()
+            transactions = query.all()
+            # Access category while session is open
+            for tx in transactions:
+                _ = tx.category
+            return transactions
 
     @staticmethod
     def get_by_date_range(start: date, end: date) -> List[Transaction]:
