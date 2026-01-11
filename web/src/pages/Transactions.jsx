@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Search, Filter, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Filter, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
 
 // Category badge styling
 const CATEGORY_STYLES = {
@@ -14,19 +14,6 @@ const CATEGORY_STYLES = {
   'Other': 'bg-gray-800/40 text-gray-200 border-gray-700/30',
 }
 
-// Category icons
-const CATEGORY_ICONS = {
-  'Food & Dining': 'restaurant',
-  'Shopping': 'shopping_cart',
-  'Transport': 'directions_car',
-  'Entertainment': 'movie',
-  'Groceries': 'local_grocery_store',
-  'Bills & Utilities': 'receipt_long',
-  'Healthcare': 'medical_services',
-  'Travel': 'flight',
-  'Other': 'more_horiz',
-}
-
 function CategoryBadge({ category }) {
   const style = CATEGORY_STYLES[category] || CATEGORY_STYLES['Other']
   return (
@@ -36,12 +23,21 @@ function CategoryBadge({ category }) {
   )
 }
 
+function SortIcon({ field, sortField, sortOrder }) {
+  if (sortField !== field) {
+    return <ArrowUpDown size={14} className="text-gray-600" />
+  }
+  return sortOrder === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+}
+
 export default function Transactions() {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [sortField, setSortField] = useState('date')
+  const [sortOrder, setSortOrder] = useState('desc')
   const itemsPerPage = 20
 
   useEffect(() => {
@@ -60,15 +56,35 @@ export default function Transactions() {
     return ['all', ...Array.from(cats)]
   }, [transactions])
 
-  // Filter transactions
+  // Filter and sort transactions
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(tx => {
+    let result = transactions.filter(tx => {
       const matchesSearch = searchQuery === '' ||
         tx.merchant.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesCategory = selectedCategory === 'all' || tx.category === selectedCategory
       return matchesSearch && matchesCategory
     })
-  }, [transactions, searchQuery, selectedCategory])
+
+    // Sort
+    result = [...result].sort((a, b) => {
+      let aVal, bVal
+      if (sortField === 'date') {
+        aVal = new Date(a.transaction_date).getTime()
+        bVal = new Date(b.transaction_date).getTime()
+      } else if (sortField === 'merchant') {
+        aVal = a.merchant.toLowerCase()
+        bVal = b.merchant.toLowerCase()
+      } else if (sortField === 'amount') {
+        aVal = a.amount
+        bVal = b.amount
+      }
+      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1
+      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1
+      return 0
+    })
+
+    return result
+  }, [transactions, searchQuery, selectedCategory, sortField, sortOrder])
 
   // Paginate
   const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage)
@@ -80,7 +96,16 @@ export default function Transactions() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, selectedCategory])
+  }, [searchQuery, selectedCategory, sortField, sortOrder])
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('desc')
+    }
+  }
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr)
@@ -151,10 +176,22 @@ export default function Transactions() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-gray-800/40 text-gray-400 font-semibold border-b border-border-dark">
                   <tr>
-                    <th className="px-6 py-4 w-28">Date</th>
-                    <th className="px-6 py-4">Merchant</th>
+                    <th className="px-6 py-4 w-28">
+                      <button onClick={() => handleSort('date')} className="flex items-center gap-1 hover:text-white transition-colors">
+                        Date <SortIcon field="date" sortField={sortField} sortOrder={sortOrder} />
+                      </button>
+                    </th>
+                    <th className="px-6 py-4">
+                      <button onClick={() => handleSort('merchant')} className="flex items-center gap-1 hover:text-white transition-colors">
+                        Merchant <SortIcon field="merchant" sortField={sortField} sortOrder={sortOrder} />
+                      </button>
+                    </th>
                     <th className="px-6 py-4 w-40">Category</th>
-                    <th className="px-6 py-4 text-right w-32">Amount</th>
+                    <th className="px-6 py-4 text-right w-32">
+                      <button onClick={() => handleSort('amount')} className="flex items-center gap-1 ml-auto hover:text-white transition-colors">
+                        Amount <SortIcon field="amount" sortField={sortField} sortOrder={sortOrder} />
+                      </button>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-dark">

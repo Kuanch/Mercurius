@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Wallet, TrendingUp, RefreshCw, ChevronDown, CreditCard, Download } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Wallet, TrendingUp, RefreshCw, ChevronDown, ChevronUp, CreditCard, Download, ArrowUpDown } from 'lucide-react'
 
 // Bank logo mapping - you can replace with actual logos
 const BANK_LOGOS = {
@@ -32,9 +32,18 @@ function CategoryBadge({ category }) {
   )
 }
 
+function SortIcon({ field, sortField, sortOrder }) {
+  if (sortField !== field) {
+    return <ArrowUpDown size={14} className="text-gray-600" />
+  }
+  return sortOrder === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+}
+
 function BillCard({ bill, onToggle, isOpen }) {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(false)
+  const [sortField, setSortField] = useState('date')
+  const [sortOrder, setSortOrder] = useState('desc')
 
   useEffect(() => {
     if (isOpen && transactions.length === 0) {
@@ -48,6 +57,34 @@ function BillCard({ bill, onToggle, isOpen }) {
         .catch(() => setLoading(false))
     }
   }, [isOpen, bill.id, transactions.length])
+
+  const sortedTransactions = useMemo(() => {
+    return [...transactions].sort((a, b) => {
+      let aVal, bVal
+      if (sortField === 'date') {
+        aVal = new Date(a.date).getTime()
+        bVal = new Date(b.date).getTime()
+      } else if (sortField === 'merchant') {
+        aVal = a.merchant.toLowerCase()
+        bVal = b.merchant.toLowerCase()
+      } else if (sortField === 'amount') {
+        aVal = a.amount
+        bVal = b.amount
+      }
+      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1
+      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [transactions, sortField, sortOrder])
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('desc')
+    }
+  }
 
   const formatDate = (dateStr) => {
     const d = new Date(dateStr)
@@ -96,13 +133,25 @@ function BillCard({ bill, onToggle, isOpen }) {
               <table className="w-full text-left text-sm">
                 <thead className="bg-gray-800/40 text-gray-400 font-semibold border-b border-border-dark">
                   <tr>
-                    <th className="px-6 py-4 w-24">Date</th>
-                    <th className="px-6 py-4">Merchant</th>
-                    <th className="px-6 py-4 text-right">Amount</th>
+                    <th className="px-6 py-4 w-24">
+                      <button onClick={() => handleSort('date')} className="flex items-center gap-1 hover:text-white transition-colors">
+                        Date <SortIcon field="date" sortField={sortField} sortOrder={sortOrder} />
+                      </button>
+                    </th>
+                    <th className="px-6 py-4">
+                      <button onClick={() => handleSort('merchant')} className="flex items-center gap-1 hover:text-white transition-colors">
+                        Merchant <SortIcon field="merchant" sortField={sortField} sortOrder={sortOrder} />
+                      </button>
+                    </th>
+                    <th className="px-6 py-4 text-right">
+                      <button onClick={() => handleSort('amount')} className="flex items-center gap-1 ml-auto hover:text-white transition-colors">
+                        Amount <SortIcon field="amount" sortField={sortField} sortOrder={sortOrder} />
+                      </button>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-dark">
-                  {transactions.slice(0, 10).map((tx) => (
+                  {sortedTransactions.slice(0, 10).map((tx) => (
                     <tr key={tx.id} className="hover:bg-gray-700/30 transition-colors">
                       <td className="px-6 py-4 text-gray-400">{formatDate(tx.date)}</td>
                       <td className="px-6 py-4 text-white font-medium">
@@ -171,7 +220,17 @@ export default function Dashboard() {
         alert(data.detail || 'Sync failed')
       } else {
         alert(`Synced ${data.bills_processed} bills, ${data.transactions_imported} transactions for ${year}-${month}`)
-        window.location.reload()
+        // Refresh data without changing page
+        const [summaryRes, billsRes] = await Promise.all([
+          fetch(`/api/analysis/monthly?year=${year}&month=${month}`).then(r => r.json()),
+          fetch('/api/bills/').then(r => r.json())
+        ])
+        setSummary(summaryRes)
+        const filtered = billsRes.filter(b => {
+          const d = new Date(b.statement_date)
+          return d.getFullYear() === parseInt(year) && d.getMonth() + 1 === parseInt(month)
+        })
+        setBills(filtered)
       }
     } catch (e) {
       alert('Sync failed: Could not connect to server')
