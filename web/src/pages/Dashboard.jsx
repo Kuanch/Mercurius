@@ -155,7 +155,7 @@ export default function Dashboard() {
           const d = new Date(b.statement_date)
           return d.getFullYear() === parseInt(year) && d.getMonth() + 1 === parseInt(month)
         })
-        setBills(filtered.length > 0 ? filtered : billsData.slice(0, 5))
+        setBills(filtered)
         setLoading(false)
       })
       .catch(() => setLoading(false))
